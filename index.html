@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>USP - Busca Disciplina</title>
+		<link href="../repo/css/bootstrap-min.css" rel="stylesheet"/>
+		<link href="../repo/css/bootstrap-theme-min.css" rel="stylesheet"/>
+		<link href="styles.css" rel="stylesheet" type="text/css"/>
+		<style>
+			.morecontent {
+				text-align: justify;
+				text-justify: inter-word;
+				width: 95%;
+			}
+			.creditos {
+				font-size: 12px;
+				font-weight: semibold;
+			}
+		</style>
+		<script src="jquery-2.1.1.min.js"></script>
+		<script src="jquery.shorten.js"></script>
+		<script src="bootstrap.min.js"></script>
+		<script>
+			function gera_sigla(fullname)
+			{
+				pairs = {
+					"Pr%C3%B3-Reitoria%20de%20Gradua%C3%A7%C3%A3o%20-%20Cursos%20Interunidades": "Pro-Grad",
+					"Instituto%20de%20Estudos%20Brasileiros": "IEB",
+					"Escola%20de%20Comunica%C3%A7%C3%B5es%20e%20Artes": "ECA"
+				}
+				return pairs[fullname];
+			}
+
+			$(document).ready(function() {
+				$.getJSON('data.json');
+			});
+
+			function str2reg(str1)
+			{ //function that splits a string into an array of words, wraps each like (?=.*word) and puts them back together
+				str1 = str1.split(' ');
+				var str2 = ''; //second string to concat all others
+				$.each(str1, function(ind, word) {
+					word = '(?=.*'+ word +')';
+					str2 = str2.concat(word);
+				});
+				return str2;
+			}
+			$(window).load(function()
+			{
+				$('#search').keyup(function()
+				{
+					$('#form').submit(function() {
+  						return false;
+					});
+
+					var searchField = $('#search').val(); // saves current form value to variable
+					if (!searchField)
+					{
+						$('#results').empty();
+					}
+					else
+					{
+						searchField = str2reg(searchField); // splits input's words
+						var regex = new RegExp(searchField, "i"); // creates new RegExp object with case-insensitive match on the previous variable
+						var output = ''; // starts printing output
+						var count = 1;
+						var found = 0;
+
+						$.getJSON('data.json', function(data)
+						{
+							$.each(data, function(key, val) // here, the key is an integer INDEX and val is an OBJECT, since this 'data' is an ARRAY
+							{
+								var present = false; // at first there are no occurrences in this val
+								var i = 0;
+								$.each(val, function(cat, cont) {
+									if (cont.search(regex) != -1) // has it found a match?
+										present = true;
+									i++;
+									if (present == true || i > 12) // if it finds a match or reaches the end of searchable part of obj, break
+										return false;
+								});
+								if (present == true) // if so, I found a match in this value(course)
+								{
+									found++;
+									var sigla = gera_sigla(encodeURI(val.unidade));
+									output += '<tr data-unit="'+sigla+'">';
+									var code;
+									for (var i = 13, code = val.nome[12]; i < 19; i++) // extracts course code
+										code += val.nome[i];
+									realNome = val.nome.slice(22,val.nome.length);
+									//output += '<div class="col-md-12 item-materia">';
+									output += '<td><h6><span data-toggle="tooltip" title="' + val.unidade + '">' + sigla + '</span></h6></td>';
+									output += '<td><h5><strong>' + code + ' - ';
+									output += '<a href="https://uspdigital.usp.br/jupiterweb/obterDisciplina?sgldis=' + code + '">' + realNome + '</a></h5></td></tr>';
+									output += '<tr><td style="width: 92px"><table class="creditos">';
+									output += '<tr><td data-toggle="tooltip" title="Créditos-aula"><strong>CA</strong>: '+ val.cred_aula + '</td></tr>' +
+											'<tr><td data-toggle="tooltip" data-placement="bottom" title="Créditos-trabalho"><strong>CT</strong>: '+ val.cred_trab + '</td></tr></table><td>' +
+											'<h6 class="morecontent"><span>' + val.programa + '</span></h6></td></tr>';
+									//output += '</div>'; <a href="https://uspdigital.usp.br/jupiterweb/obterDisciplina?sgldis=' + code + '">' + '... (mais)</a>
+									//output += '</div>';
+									if(count % 2 == 0)
+									{
+										output += '</tr>'
+									}
+									count++;
+								}
+							});
+							output += '</tbody></table></div>';
+							output = '<div class="panel panel-default"><div class="panel-heading">Disciplinas encontradas: '+ found +'</div><table class="table table-responsive table-striped"><thead><tr><th>Unidade</th><th>Disciplina</th></tr><tbody>'.concat(output); //prints output header
+							$('#results').html(output); // generates query results
+							$('[data-toggle="tooltip"]').tooltip({
+								'data-placement': 'bottom',
+							}); // enables tooltips on dpt names
+							$('.morecontent').shorten({
+								moreText: '>>',
+								lessText: '<<',
+								showChars: '150'
+							}); // shortens descriptions
+						});
+					}
+				});
+			});
+	</script>
+	</head>
+
+	<body>
+		<div id="fb-root"></div>
+		<script>(function(d, s, id) {
+			var js, fjs = d.getElementsByTagName(s)[0];
+			if (d.getElementById(id)) return;
+			js = d.createElement(s); js.id = id;
+			js.src = "//connect.facebook.net/en_US/sdk.js#xfbml=1&appId=300550970089564&version=v2.0";
+			fjs.parentNode.insertBefore(js, fjs);
+		}
+		(document, 'script', 'facebook-jssdk'));
+		</script>
+
+		<div id="main" class="container">
+			<div id="header">
+				<h1><strong>Busca de disciplinas da USP</strong></h1>
+				<p>Procurando por optativas de seu interesse? Ou só querendo descobrir quantas matérias falam sobre RPG (dica: não são muitas) ? Aqui você pode buscar matérias pelo conteúdo de suas páginas no JúpiterWeb, não só pelo nome, e encontrar o que você procura :3</p>
+				<p>Digite abaixo os termos para buscá-los no nome, unidade, curso/departamento, programa e objetivos das disciplinas da USP. Sugere-se que você use palavras-chave simples como <code>direito</code>, <code>filosofia</code>, <code>educação</code>, etc. para encontrar o máximo de resultados possível.</p>
+				<p>A busca pode demorar alguns segundos para exibir os resultados, aguarde.</p>
+			</div>
+			<div class="form-group has-warning has-feedback">
+				<label class="control-label" for="inputWarning2">Input with warning</label>
+				<input type="text" class="form-control" id="inputWarning2" aria-describedby="inputWarning2Status">
+				<span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span>
+				<span id="inputWarning2Status" class="sr-only">(warning)</span>
+			</div>
+
+			<form id="form" role="form">
+				<div class="form-group">
+					<input type="text" autocomplete="off" class="form-control input-lg" id="search" placeholder="O que você procura?">
+				</div>
+			</form>
+			<div id="results"></div>
+			<div class="fb-like" data-href="http://rafaelviana.com.br/busca_usp/" data-layout="standard" data-action="like" data-show-faces="true" data-share="true"></div>
+		</div>
+	</body>
+</html>
