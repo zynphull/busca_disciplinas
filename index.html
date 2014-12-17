@@ -3,9 +3,9 @@
 	<head>
 		<meta charset="UTF-8">
 		<title>USP - Busca Disciplina</title>
-		<link href="../repo/css/bootstrap-min.css" rel="stylesheet"/>
-		<link href="../repo/css/bootstrap-theme-min.css" rel="stylesheet"/>
-		<link href="styles.css" rel="stylesheet" type="text/css"/>
+		<link href="css/bootstrap-min.css" rel="stylesheet"/>
+		<link href="css/bootstrap-theme-min.css" rel="stylesheet"/>
+		<link href="css/styles.css" rel="stylesheet" type="text/css"/>
 		<style>
 			.morecontent {
 				text-align: justify;
@@ -17,34 +17,77 @@
 				font-weight: semibold;
 			}
 		</style>
-		<script src="jquery-2.1.1.min.js"></script>
-		<script src="jquery.shorten.js"></script>
-		<script src="bootstrap.min.js"></script>
+		<script src="js/jquery-2.1.1.min.js"></script>
+		<script src="js/jquery.shorten.js"></script>
+		<script src="js/bootstrap.min.js"></script>
 		<script>
+			// initiates global variables
+			var unit_set = Array.new;
+
+			$(document).ready(function() {
+				$.getJSON('data.json'); // downloads relevant json data
+
+				// delegate event listener to watch for changes in Unit select's option and filter results
+				$('div').on('change', '#unit-sel', function() {
+					var selected = $('select option:selected').text(); //checks which unit is selected
+					var unitrows = $('.unit-row');
+					if (selected == "Unidade") // if default option is selected, clear filter
+					{
+						unitrows.removeClass('hidden');
+						unitrows.next().removeClass('hidden');
+					}
+					else //otherwise just filter for selected Unit
+					{
+						// hides all course rows
+						unitrows.addClass('hidden');
+						unitrows.next().addClass('hidden');
+						// shows only the relevant ones
+						$('tr[data-unit="'+selected+'"').removeClass('hidden');
+						$('tr[data-unit="'+selected+'"').next().removeClass('hidden');
+					}
+				});
+			});
+
+			// method to return Unit's acronyms, given their full names
 			function gera_sigla(fullname)
 			{
 				pairs = {
-					"Pr%C3%B3-Reitoria%20de%20Gradua%C3%A7%C3%A3o%20-%20Cursos%20Interunidades": "Pro-Grad",
+					"Pr%C3%B3-Reitoria%20de%20Gradua%C3%A7%C3%A3o%20-%20Cursos%20Interunidades": "PRG",
 					"Instituto%20de%20Estudos%20Brasileiros": "IEB",
-					"Escola%20de%20Comunica%C3%A7%C3%B5es%20e%20Artes": "ECA"
+					"Escola%20de%20Comunica%C3%A7%C3%B5es%20e%20Artes": "ECA",
+					"Faculdade%20de%20Direito": "FDUSP"
 				}
 				return pairs[fullname];
 			}
 
-			$(document).ready(function() {
-				$.getJSON('data.json');
-			});
-
 			function str2reg(str1)
 			{ //function that splits a string into an array of words, wraps each like (?=.*word) and puts them back together
-				str1 = str1.split(' ');
-				var str2 = ''; //second string to concat all others
-				$.each(str1, function(ind, word) {
-					word = '(?=.*'+ word +')';
-					str2 = str2.concat(word);
-				});
+				str1 = str1.split(' '); // splits str1
+				while (str1.indexOf('') != -1) // erases blank entries from array, preventing multiple SPACE chars
+					str1.splice([str1.indexOf('')],1);
+				var str2 = ''; // second string to concat all others
+				var input = $('#search').val(); // gets raw input text
+				last_word = str1[str1.length - 1]; // extracts last word
+				str1.pop(); // pops last word. str1 may have 0 or more words now
+				// if it has 0 word, it'll skip the IF, as last_word contains its only word and will be taken care of below
+				// if it has 1 or + words, it'll enter the if, add a \b to it, and leave
+				// after skipping, line "str2 += '(?=.*\\b'+ last_word;" append the only word 
+				if (str1.length >= 1)
+				{
+					$.each(str1, function(index, word) {
+						word = '(?=.*\\b'+ word +'\\b)'; // wraps it in regex lookahead
+						str2 = str2.concat(word);
+					});
+				}
+				str2 += '(?=.*\\b'+ last_word;
+				console.log(input);
+				if (input[input.length - 1] == ' ') // if last char on search box is space, close last word
+					str2 += '\\b';
+				str2 += ')';
+				console.log(str2);
 				return str2;
 			}
+
 			$(window).load(function()
 			{
 				$('#search').keyup(function()
@@ -68,6 +111,7 @@
 
 						$.getJSON('data.json', function(data)
 						{
+							unit_set = [];
 							$.each(data, function(key, val) // here, the key is an integer INDEX and val is an OBJECT, since this 'data' is an ARRAY
 							{
 								var present = false; // at first there are no occurrences in this val
@@ -83,7 +127,9 @@
 								{
 									found++;
 									var sigla = gera_sigla(encodeURI(val.unidade));
-									output += '<tr data-unit="'+sigla+'">';
+									if (unit_set.indexOf(sigla) == -1) // creating a list of units found
+										unit_set.push(sigla); // if unit wasn't already listed, push it into the list
+									output += '<tr class="unit-row" data-unit="'+sigla+'">';
 									var code;
 									for (var i = 13, code = val.nome[12]; i < 19; i++) // extracts course code
 										code += val.nome[i];
@@ -93,11 +139,7 @@
 									output += '<td><h5><strong>' + code + ' - ';
 									output += '<a href="https://uspdigital.usp.br/jupiterweb/obterDisciplina?sgldis=' + code + '">' + realNome + '</a></h5></td></tr>';
 									output += '<tr><td style="width: 92px"><table class="creditos">';
-									output += '<tr><td data-toggle="tooltip" title="Créditos-aula"><strong>CA</strong>: '+ val.cred_aula + '</td></tr>' +
-											'<tr><td data-toggle="tooltip" data-placement="bottom" title="Créditos-trabalho"><strong>CT</strong>: '+ val.cred_trab + '</td></tr></table><td>' +
-											'<h6 class="morecontent"><span>' + val.programa + '</span></h6></td></tr>';
-									//output += '</div>'; <a href="https://uspdigital.usp.br/jupiterweb/obterDisciplina?sgldis=' + code + '">' + '... (mais)</a>
-									//output += '</div>';
+									output += '<tr><td data-toggle="tooltip" title="Créditos-aula"><strong>CA</strong>: '+ val.cred_aula + '</td></tr>'+'<tr><td data-toggle="tooltip" data-placement="bottom" title="Créditos-trabalho"><strong>CT</strong>: '+ val.cred_trab + '</td></tr></table><td><h6 class="morecontent"><span>' + val.programa + '</span></h6></td></tr>';
 									if(count % 2 == 0)
 									{
 										output += '</tr>'
@@ -106,21 +148,27 @@
 								}
 							});
 							output += '</tbody></table></div>';
-							output = '<div class="panel panel-default"><div class="panel-heading">Disciplinas encontradas: '+ found +'</div><table class="table table-responsive table-striped"><thead><tr><th>Unidade</th><th>Disciplina</th></tr><tbody>'.concat(output); //prints output header
-							$('#results').html(output); // generates query results
-							$('[data-toggle="tooltip"]').tooltip({
+							output_final = '<div class="panel panel-default"><div class="panel-heading">Disciplinas encontradas: '+ found +'</div><table class="table table-responsive table-striped"><thead><tr><th><select id="unit-sel" class="form-control input-sm"><option value="clear">Unidade</option>';
+							$.each(unit_set, function(ind, unit) {
+								output_final += '<option value="'+ unit + '">'+ unit +'</option>';
+							});
+							output_final += '</select></th><th>Disciplina</th></tr><tbody>'.concat(output); //prints output header
+							$('#results').html(output_final); // generates query results
+
+							$('[data-toggle="tooltip"]').tooltip({ // enables tooltips on dpt names
 								'data-placement': 'bottom',
-							}); // enables tooltips on dpt names
+							}); 
+
 							$('.morecontent').shorten({
 								moreText: '>>',
 								lessText: '<<',
-								showChars: '150'
+								showChars: '500'
 							}); // shortens descriptions
 						});
 					}
 				});
 			});
-	</script>
+		</script>
 	</head>
 
 	<body>
@@ -129,7 +177,7 @@
 			var js, fjs = d.getElementsByTagName(s)[0];
 			if (d.getElementById(id)) return;
 			js = d.createElement(s); js.id = id;
-			js.src = "//connect.facebook.net/en_US/sdk.js#xfbml=1&appId=300550970089564&version=v2.0";
+			js.src = "//connect.facebook.net/pt_BR/sdk.js#xfbml=1&appId=300550970089564&version=v2.0";
 			fjs.parentNode.insertBefore(js, fjs);
 		}
 		(document, 'script', 'facebook-jssdk'));
@@ -142,18 +190,10 @@
 				<p>Digite abaixo os termos para buscá-los no nome, unidade, curso/departamento, programa e objetivos das disciplinas da USP. Sugere-se que você use palavras-chave simples como <code>direito</code>, <code>filosofia</code>, <code>educação</code>, etc. para encontrar o máximo de resultados possível.</p>
 				<p>A busca pode demorar alguns segundos para exibir os resultados, aguarde.</p>
 			</div>
-			<div class="form-group has-warning has-feedback">
-				<label class="control-label" for="inputWarning2">Input with warning</label>
-				<input type="text" class="form-control" id="inputWarning2" aria-describedby="inputWarning2Status">
-				<span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span>
-				<span id="inputWarning2Status" class="sr-only">(warning)</span>
+			<div class="form-group has-feedback">
+				<input autocomplete="off" autofocus class="form-control input-lg" id="search" placeholder="O que você procura?" type="text">
+				<span class="glyphicon glyphicon-search form-control-feedback" aria-hidden="true"></span>
 			</div>
-
-			<form id="form" role="form">
-				<div class="form-group">
-					<input type="text" autocomplete="off" class="form-control input-lg" id="search" placeholder="O que você procura?">
-				</div>
-			</form>
 			<div id="results"></div>
 			<div class="fb-like" data-href="http://rafaelviana.com.br/busca_usp/" data-layout="standard" data-action="like" data-show-faces="true" data-share="true"></div>
 		</div>
