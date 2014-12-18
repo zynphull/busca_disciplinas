@@ -80,11 +80,9 @@
 					});
 				}
 				str2 += '(?=.*\\b'+ last_word;
-				console.log(input);
 				if (input[input.length - 1] == ' ') // if last char on search box is space, close last word
 					str2 += '\\b';
 				str2 += ')';
-				console.log(str2);
 				return str2;
 			}
 
