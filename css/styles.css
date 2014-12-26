@@ -46,7 +46,7 @@ strong {
 }
 
 #header > div {
-	float: right;
+	text-align: right;
 }
 
 .creditos {

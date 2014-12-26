@@ -16,6 +16,9 @@
 		<script src="js/jquery.fittext.js"></script>
 		<link href="css/styles.css" rel="stylesheet" type="text/css"/>
 	<script>
+
+	// all this javascript NOT in a proper separate file is due to my server being shitty and taking 10mins to refresh its cache for JS files. so yeah. fuck it haha
+
 	//var mySpreadsheet = 'https://docs.google.com/a/rafaelviana.com.br/spreadsheets/d/1mL9CkCqi2kqHCTPbB5wjiD8Unx7C74P8BbRwVofiL74/edit#gid=0';
 	var mySpreadsheet = 'https://docs.google.com/a/rafaelviana.com.br/spreadsheets/d/1hC0DX3PZIzFTPPKzTLmB4ghm_T0a-SyY3bmDzJ4bge8/edit#gid=541012206';
 	// this variable saves the last query called
@@ -49,9 +52,9 @@
 
 	$(document).ready(function() {
 
-		$('#myModal').on('shown.bs.modal', function () {
-			$('#myInput').focus()
-		})
+		$('#credits').on('click', function() {
+			$('#myModal').modal();
+		});
 
 		// fits header text to parent div
 		$("#header > h1").fitText(1.2);
@@ -284,16 +287,15 @@
 			  <div class="modal-body">
 			  Essa busca não seria possível sem o auxílio dos seguintes frameworks/plugins/pessoa:
 			  	<ul>
-					<li>(eu) e</li>
-					<li>bootstrap</li>
-					<li>google fonts</li>
-					<li><a href="http://jquery.com/">jquery</a> - <a href="http://chriszarate.github.io/sheetrock/">sheetrock</a>, readmore, fittext, highlight</li>
+					<li><a href="http://www.rafaelviana.com.br/">(eu)</a> e</li>
+					<li><a href="http://getbootstrap.com/">bootstrap</a></li>
+					<li><a href="https://www.google.com/fonts">google fonts</a></li>
+					<li><a href="http://jquery.com/">jquery</a> - <a href="http://chriszarate.github.io/sheetrock/">sheetrock</a>, <a href="http://jedfoster.com/Readmore.js/">readmore</a>, <a href="http://fittextjs.com/">fittext</a>, <a href"http://johannburkard.de/blog/programming/javascript/highlight-javascript-text-higlighting-jquery-plugin.html">highlight</a></li>
 				</ul>
-
+				dá uma garfada no <a href="https://github.com/zynphull/busca_disciplinas">github</a>!
 			  </div>
 			  <div class="modal-footer">
-				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-				<button type="button" class="btn btn-primary">Save changes</button>
+				<button type="button" class="btn btn-default" data-dismiss="modal">fechar</button>
 			  </div>
 			</div>
 		  </div>
@@ -325,7 +327,7 @@
 				</div>
 				<div class="col-xs-5 pull-right" id="like_smaller">
 					<div><strong>Achou daora? Tem mais coisa no <a href="http://www.rafaelviana.com.br">meu site!</a> \o</strong></div>
-					<div class="fb-like" data-href="http://www.rafaelviana.com.br/busca_usp/" data-layout="standard" data-action="like" data-show-faces="false" data-share="true"></div>
+					<div class="fb-like pull-right" data-href="http://www.rafaelviana.com.br/busca_usp/" data-layout="button" data-action="like" data-show-faces="false" data-share="true"></div>
 				</div>
 			</div>
 			<div class="row"> <!-- checkboxes row-->
