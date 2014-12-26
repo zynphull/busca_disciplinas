@@ -2,198 +2,375 @@
 <html>
 	<head>
 		<meta charset="UTF-8">
-		<title>USP - Busca Disciplina</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Busca de Disciplinas - USP | rafaelviana.com.br</title>
 		<link href="css/bootstrap-min.css" rel="stylesheet"/>
 		<link href="css/bootstrap-theme-min.css" rel="stylesheet"/>
-		<link href="css/styles.css" rel="stylesheet" type="text/css"/>
-		<style>
-			.morecontent {
-				text-align: justify;
-				text-justify: inter-word;
-				width: 95%;
-			}
-			.creditos {
-				font-size: 12px;
-				font-weight: semibold;
-			}
-		</style>
+		<link href='http://fonts.googleapis.com/css?family=Patua+One' rel='stylesheet' type='text/css'>
+		<link href='http://fonts.googleapis.com/css?family=Open+Sans:700,800,400' rel='stylesheet' type='text/css'>
 		<script src="js/jquery-2.1.1.min.js"></script>
-		<script src="js/jquery.shorten.js"></script>
+		<script src="js/jquery.highlight-4.js"></script>
 		<script src="js/bootstrap.min.js"></script>
-		<script>
-			// initiates global variables
-			var unit_set = Array.new;
+		<script src="js/jquery.sheetrock.min.js"></script>
+		<script src="js/readmore.min.js"></script>
+		<script src="js/jquery.fittext.js"></script>
+		<link href="css/styles.css" rel="stylesheet" type="text/css"/>
+	<script>
+	//var mySpreadsheet = 'https://docs.google.com/a/rafaelviana.com.br/spreadsheets/d/1mL9CkCqi2kqHCTPbB5wjiD8Unx7C74P8BbRwVofiL74/edit#gid=0';
+	var mySpreadsheet = 'https://docs.google.com/a/rafaelviana.com.br/spreadsheets/d/1hC0DX3PZIzFTPPKzTLmB4ghm_T0a-SyY3bmDzJ4bge8/edit#gid=541012206';
+	// this variable saves the last query called
+	var cur_query = '';
 
-			$(document).ready(function() {
-				$.getJSON('data.json'); // downloads relevant json data
+	// object to store checkbox values
+	checkbox = {
+		"unidade": true,
+		"nome": true,
+		"objetivos": true,
+		"progres": true,
+		"programa": true,
+		"bibliografia": true,
+	};
+	// this stores reference values for sheetrock's query
+	col_refs = {
+		A: 'unidade',
+		B: 'curso',
+		C: 'nome',
+		D: 'credaula',
+		E: 'credtrab',
+		F: 'tipo',
+		G: 'ativacao',
+		H: 'objetivos',
+		I:'docresp',
+		J: 'progres',
+		K: 'programa',
+		L: 'metodo',
+		M: 'bibliografia'
+	};
 
-				// delegate event listener to watch for changes in Unit select's option and filter results
-				$('div').on('change', '#unit-sel', function() {
-					var selected = $('select option:selected').text(); //checks which unit is selected
-					var unitrows = $('.unit-row');
-					if (selected == "Unidade") // if default option is selected, clear filter
-					{
-						unitrows.removeClass('hidden');
-						unitrows.next().removeClass('hidden');
-					}
-					else //otherwise just filter for selected Unit
-					{
-						// hides all course rows
-						unitrows.addClass('hidden');
-						unitrows.next().addClass('hidden');
-						// shows only the relevant ones
-						$('tr[data-unit="'+selected+'"').removeClass('hidden');
-						$('tr[data-unit="'+selected+'"').next().removeClass('hidden');
-					}
-				});
-			});
+	$(document).ready(function() {
 
-			// method to return Unit's acronyms, given their full names
-			function gera_sigla(fullname)
-			{
-				pairs = {
-					"Pr%C3%B3-Reitoria%20de%20Gradua%C3%A7%C3%A3o%20-%20Cursos%20Interunidades": "PRG",
-					"Instituto%20de%20Estudos%20Brasileiros": "IEB",
-					"Escola%20de%20Comunica%C3%A7%C3%B5es%20e%20Artes": "ECA",
-					"Faculdade%20de%20Direito": "FDUSP"
-				}
-				return pairs[fullname];
+		$('#myModal').on('shown.bs.modal', function () {
+			$('#myInput').focus()
+		})
+
+		// fits header text to parent div
+		$("#header > h1").fitText(1.2);
+
+		// shows/hides like buttons based on viewport size
+		$(window).resize(function() {
+			toggleLike();
+		});
+
+		function toggleLike() {
+			if ($(window).width() >= 1320) {
+				$("#like_desktop").show();
+				$("#like_smaller").hide();
 			}
-
-			function str2reg(str1)
-			{ //function that splits a string into an array of words, wraps each like (?=.*word) and puts them back together
-				str1 = str1.split(' '); // splits str1
-				while (str1.indexOf('') != -1) // erases blank entries from array, preventing multiple SPACE chars
-					str1.splice([str1.indexOf('')],1);
-				var str2 = ''; // second string to concat all others
-				var input = $('#search').val(); // gets raw input text
-				last_word = str1[str1.length - 1]; // extracts last word
-				str1.pop(); // pops last word. str1 may have 0 or more words now
-				// if it has 0 word, it'll skip the IF, as last_word contains its only word and will be taken care of below
-				// if it has 1 or + words, it'll enter the if, add a \b to it, and leave
-				// after skipping, line "str2 += '(?=.*\\b'+ last_word;" append the only word 
-				if (str1.length >= 1)
-				{
-					$.each(str1, function(index, word) {
-						word = '(?=.*\\b'+ word +'\\b)'; // wraps it in regex lookahead
-						str2 = str2.concat(word);
-					});
-				}
-				str2 += '(?=.*\\b'+ last_word;
-				if (input[input.length - 1] == ' ') // if last char on search box is space, close last word
-					str2 += '\\b';
-				str2 += ')';
-				return str2;
+			else {
+				$("#like_desktop").hide();
+				$("#like_smaller").show();
 			}
+		};
 
-			$(window).load(function()
-			{
-				$('#search').keyup(function()
-				{
-					$('#form').submit(function() {
-  						return false;
-					});
+		toggleLike();
 
-					var searchField = $('#search').val(); // saves current form value to variable
-					if (!searchField)
-					{
-						$('#results').empty();
-					}
-					else
-					{
-						searchField = str2reg(searchField); // splits input's words
-						var regex = new RegExp(searchField, "i"); // creates new RegExp object with case-insensitive match on the previous variable
-						var output = ''; // starts printing output
-						var count = 1;
-						var found = 0;
+		// listening for checkbox changes
+		$('.checkbox-inline input').change(function() {
+			// clears table
+			//$("#res_table > tbody").empty();
+			var who = $(this).attr('value') // finds out which element is this
+			checkbox[who] = !checkbox[who]; // invert checkbox obj value
+			if ($("#search_input").val() != '')
+				queryUp(); // calls new query to update results
+		});
 
-						$.getJSON('data.json', function(data)
-						{
-							unit_set = [];
-							$.each(data, function(key, val) // here, the key is an integer INDEX and val is an OBJECT, since this 'data' is an ARRAY
-							{
-								var present = false; // at first there are no occurrences in this val
-								var i = 0;
-								$.each(val, function(cat, cont) {
-									if (cont.search(regex) != -1) // has it found a match?
-										present = true;
-									i++;
-									if (present == true || i > 12) // if it finds a match or reaches the end of searchable part of obj, break
-										return false;
-								});
-								if (present == true) // if so, I found a match in this value(course)
-								{
-									found++;
-									var sigla = gera_sigla(encodeURI(val.unidade));
-									if (unit_set.indexOf(sigla) == -1) // creating a list of units found
-										unit_set.push(sigla); // if unit wasn't already listed, push it into the list
-									output += '<tr class="unit-row" data-unit="'+sigla+'">';
-									var code;
-									for (var i = 13, code = val.nome[12]; i < 19; i++) // extracts course code
-										code += val.nome[i];
-									realNome = val.nome.slice(22,val.nome.length);
-									//output += '<div class="col-md-12 item-materia">';
-									output += '<td><h6><span data-toggle="tooltip" title="' + val.unidade + '">' + sigla + '</span></h6></td>';
-									output += '<td><h5><strong>' + code + ' - ';
-									output += '<a href="https://uspdigital.usp.br/jupiterweb/obterDisciplina?sgldis=' + code + '">' + realNome + '</a></h5></td></tr>';
-									output += '<tr><td style="width: 92px"><table class="creditos">';
-									output += '<tr><td data-toggle="tooltip" title="Créditos-aula"><strong>CA</strong>: '+ val.cred_aula + '</td></tr>'+'<tr><td data-toggle="tooltip" data-placement="bottom" title="Créditos-trabalho"><strong>CT</strong>: '+ val.cred_trab + '</td></tr></table><td><h6 class="morecontent"><span>' + val.programa + '</span></h6></td></tr>';
-									if(count % 2 == 0)
-									{
-										output += '</tr>'
-									}
-									count++;
-								}
-							});
-							output += '</tbody></table></div>';
-							output_final = '<div class="panel panel-default"><div class="panel-heading">Disciplinas encontradas: '+ found +'</div><table class="table table-responsive table-striped"><thead><tr><th><select id="unit-sel" class="form-control input-sm"><option value="clear">Unidade</option>';
-							$.each(unit_set, function(ind, unit) {
-								output_final += '<option value="'+ unit + '">'+ unit +'</option>';
-							});
-							output_final += '</select></th><th>Disciplina</th></tr><tbody>'.concat(output); //prints output header
-							$('#results').html(output_final); // generates query results
+		// checks if a given variable is null. if so, returns an empty string
+		function nullStr(variable) {
+			if (!variable)
+				return '';
+			else
+				return variable.v;
+		}
 
-							$('[data-toggle="tooltip"]').tooltip({ // enables tooltips on dpt names
-								'data-placement': 'bottom',
-							}); 
+		// receives ugly name containing course code and name, splits, returns array of the separation
+		function nameCode(fullName) {
+			var code;
+			for (var i = 13, code = fullName[12]; i < 19; i++) // extracts course code
+				code += fullName[i];
+			realName = fullName.slice(22,fullName.length);
+			joined = [code, realName].join(' - ');
+			link = 'https://uspdigital.usp.br/jupiterweb/obterDisciplina?sgldis=' + code;
+			return [joined, link];
+		}
 
-							$('.morecontent').shorten({
-								moreText: '>>',
-								lessText: '<<',
-								showChars: '500'
-							}); // shortens descriptions
-						});
-					}
-				});
+		// function receives raw data and makes it more easily usable
+		function handleThis(data) {
+			data = data.table.rows;
+			amountFound = data.length;
+			if (amountFound >= 50) {
+				$('#loadMoreBtn').show();
+				$("#disc_found").html('Exibindo os primeiros 50 resultados. Tente refinar sua busca!');
+			}
+			else
+				$("#disc_found").html('Disciplinas encontradas: ' + data.length);
+			// loops through each course that the query has returned
+			$.each(data, function(index, course) {
+				// gets course content object
+				course = course.c;
+				course = {
+					unit: course[0].v,
+					curso: course[1].v,
+					nome: course[2].v,
+					credaula: course[3].v,
+					credtrab: course[4].v,
+					objetivos: nullStr(course[5]),
+					progres: nullStr(course[6]),
+					programa: nullStr(course[7])
+				}
+				printCourse(course);		
 			});
-		</script>
+			// bootstrap's popover opt-in
+			$('[data-toggle="tooltip"]').tooltip();
+			callShorten();
+			hasLoaded();
+		}
+
+		// parses each next 50 results
+		function loadMore(data) {
+			data = data.table.rows;
+			if (data.length >= 50) {
+				$('#loadMoreBtn').show();
+			}
+			// loops through each course that the query has returned
+			$.each(data, function(index, course) {
+				// gets course content object
+				course = course.c;
+				course = {
+					unit: course[0].v,
+					curso: course[1].v,
+					nome: course[2].v,
+					credaula: course[3].v,
+					credtrab: course[4].v,
+					objetivos: nullStr(course[5]),
+					progres: nullStr(course[6]),
+					programa: nullStr(course[7])
+				}
+				printCourse(course);
+			});
+			callShorten();
+			hasLoaded();
+		}
+
+		// receives a course and prints it to the table
+		function printCourse(course) {
+			var print = '<tr><td><div class="row"><div class="col-xs-12 col-md-1"><div class="row"><div class="col-xs-6 col-md-12"><span data-toggle="tooltip" title="Créditos-aula"><strong>C.A.</strong> ' + course.credaula;
+			print += '</span></div><div class="col-xs-6 col-md-12"><strong><span data-toggle="tooltip" data-placement="bottom" title="Créditos-trabalho">C.T.</strong> ' + course.credtrab + '</div></div></div><div class="col-md-11 col-xs-12"><div class="row"><div class="col-xs-12 unit_row">' + course.unit;
+			print += '</div><div class="col-xs-12 nome_row"><strong><a href="' + nameCode(course.nome)[1] + '">' + nameCode(course.nome)[0] + '</a></strong></div></div></div></div><div class="row">';
+			if (course.objetivos != null)
+				print += '<div class="col-xs-12 obj_row"><span class="morecontent"><strong>Objetivos: </strong>' + course.objetivos + '</span></div>';
+			if (course.programa != null)
+				print += '<div class="col-xs-12 prog_row"><small><span class="morecontent"><strong>Programa: </strong>' + course.programa + '</span></small></div>';
+			print += '</div></td></tr>';
+			$('#res_table > tbody').append(print)
+		}
+
+		function smartSplit(str) {
+			str = str.split(' '); // splits str
+			while (str.indexOf('') != -1) // erases blank entries from array, preventing multiple SPACE chars
+				str.splice([str.indexOf('')], 1);
+			return str;
+		}
+
+		function whileLoad() {
+			// locks form elements
+			$("input").prop('disabled', true);
+			// hides 'load more' btn
+			$('#loadMoreBtn').hide();
+			// shows loading bar
+			$('.progress').show();
+		}
+
+		function hasLoaded() {
+			// unlocks form elements
+			$("input").prop('disabled', false);
+			// hides progress bar
+			$('.progress').hide();	
+			// highlights words
+			$.each(smartSplit($('#search_input').val()), function(index, word) {
+				$('table').highlight(word);
+			});
+		}
+
+		// generates query string and calls corresponding query
+		function queryUp() {
+			whileLoad();
+			// clears highlights
+			$(document).removeHighlight();
+			// hides table
+			$('#res_table').hide();
+			// clears table
+			$("#res_table > tbody").empty();
+			$('#disc_found').empty();
+			// gets values from searchbox
+			var keywords = smartSplit($("#search_input").val());
+			var query = 'select A,B,C,D,E,H,J,K where ';
+			// this loops through the checkbox obj and goes on creating the query
+			// loops through searched keywords and through checkboxes
+			$.each(keywords, function(ind, word) {
+				query += '(';
+				$.each(checkbox, function(who, bool) {
+					if (bool == true) // if said checkbox is TRUE
+						query += '(lower(%'+who+'%) contains '+'lower("'+word+'")) or ';
+				});
+				query = query.slice(0, -4); // slices out last OR
+				query += ') and '; // begins writing out query for next keyword
+			});
+			query = query.slice(0, -5); // slices out last AND
+			cur_query = query;
+			// sheetrock relevant code
+			$('#res_table').sheetrock(
+			{
+				chunkSize: 50,
+				dataHandler: handleThis,
+				url: mySpreadsheet,
+				resetStatus: true,
+				columns: col_refs,
+				sql: query,
+			});
+			// shows table
+			$('#res_table').show();
+		};
+
+		function callShorten() {// shortens descriptions
+			$('.morecontent').readmore({
+				maxHeight: 60,
+				moreLink: '<a href="#">Ver mais</a>',
+				lessLink: '<a href="#">Ver menos</a>'
+			});
+		};
+
+		// loads 50 next results to table
+		$('#loadMoreBtn').on('click', function() {
+			$(this).hide();
+			whileLoad();
+			$('#res_table').sheetrock(
+			{
+				chunkSize: 50,
+				dataHandler: loadMore,
+				url: mySpreadsheet,
+				columns: col_refs,
+				sql: cur_query,
+			});
+		});
+
+		$("#search_input").on('change', function() {
+			queryUp();
+		});
+		$('#search').on('click', function() {
+			queryUp();
+		});
+	});
+	</script>
 	</head>
 
 	<body>
+		<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+		  <div class="modal-dialog">
+			<div class="modal-content">
+			  <div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Créditos</h4>
+			  </div>
+			  <div class="modal-body">
+			  Essa busca não seria possível sem o auxílio dos seguintes frameworks/plugins/pessoa:
+			  	<ul>
+					<li>(eu) e</li>
+					<li>bootstrap</li>
+					<li>google fonts</li>
+					<li><a href="http://jquery.com/">jquery</a> - <a href="http://chriszarate.github.io/sheetrock/">sheetrock</a>, readmore, fittext, highlight</li>
+				</ul>
+
+			  </div>
+			  <div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+				<button type="button" class="btn btn-primary">Save changes</button>
+			  </div>
+			</div>
+		  </div>
+		</div>
+	
 		<div id="fb-root"></div>
 		<script>(function(d, s, id) {
-			var js, fjs = d.getElementsByTagName(s)[0];
-			if (d.getElementById(id)) return;
-			js = d.createElement(s); js.id = id;
-			js.src = "//connect.facebook.net/pt_BR/sdk.js#xfbml=1&appId=300550970089564&version=v2.0";
-			fjs.parentNode.insertBefore(js, fjs);
-		}
-		(document, 'script', 'facebook-jssdk'));
-		</script>
-
+		  var js, fjs = d.getElementsByTagName(s)[0];
+		  if (d.getElementById(id)) return;
+		  js = d.createElement(s); js.id = id;
+		  js.src = "//connect.facebook.net/en_US/sdk.js#xfbml=1&appId=236607003106753&version=v2.0";
+		  fjs.parentNode.insertBefore(js, fjs);
+		}(document, 'script', 'facebook-jssdk'));</script>
+		<div id="like_desktop"> <!-- fb like for desktop-->
+				<div>
+					<strong>Curtiu? Dá uma olhada no <a href="http://www.rafaelviana.com.br">meu site!</a> :D</strong>
+				</div>
+				<div class="fb-like" data-href="http://www.rafaelviana.com.br/busca_usp/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="true"></div>
+		</div>
 		<div id="main" class="container">
-			<div id="header">
-				<h1><strong>Busca de disciplinas da USP</strong></h1>
-				<p>Procurando por optativas de seu interesse? Ou só querendo descobrir quantas matérias falam sobre RPG (dica: não são muitas) ? Aqui você pode buscar matérias pelo conteúdo de suas páginas no JúpiterWeb, não só pelo nome, e encontrar o que você procura :3</p>
-				<p>Digite abaixo os termos para buscá-los no nome, unidade, curso/departamento, programa e objetivos das disciplinas da USP. Sugere-se que você use palavras-chave simples como <code>direito</code>, <code>filosofia</code>, <code>educação</code>, etc. para encontrar o máximo de resultados possível.</p>
-				<p>A busca pode demorar alguns segundos para exibir os resultados, aguarde.</p>
+			<div class="row">
+				<div class="col-xs-12">
+					<div id="header">
+						<h1><strong>Busca de Disciplinas - USP</strong></h1>
+						<p>Procurando por optativas de seu interesse? Ou só querendo descobrir quantas matérias falam sobre RPG (dica: não são muitas) ? Aqui você pode buscar matérias pelo conteúdo de suas páginas no JúpiterWeb, não só pelo nome, e encontrar o que você procura :3</p>
+						<p>Digite abaixo os termos para buscá-los no nome, unidade, curso/departamento, programa e objetivos das disciplinas da USP. Sugere-se que você combine palavras-chave simples como <code>direito</code>, <code>filosofia</code>, <code>educação</code>, etc. para maior eficiência.</p>
+						<p>A busca pode demorar alguns segundos para exibir os resultados, aguarde!</p>
+					</div>
+				</div>
+				<div class="col-xs-5 pull-right" id="like_smaller">
+					<div><strong>Achou daora? Tem mais coisa no <a href="http://www.rafaelviana.com.br">meu site!</a> \o</strong></div>
+					<div class="fb-like" data-href="http://www.rafaelviana.com.br/busca_usp/" data-layout="standard" data-action="like" data-show-faces="false" data-share="true"></div>
+				</div>
 			</div>
-			<div class="form-group has-feedback">
-				<input autocomplete="off" autofocus class="form-control input-lg" id="search" placeholder="O que você procura?" type="text">
-				<span class="glyphicon glyphicon-search form-control-feedback" aria-hidden="true"></span>
+			<div class="row"> <!-- checkboxes row-->
+				<div class="col-xs-12">
+					<strong style="padding-right:5px;">Buscar em: </strong>
+					<label class="checkbox-inline"><input type="checkbox" checked value="unidade">Unidade</label>
+					<label class="checkbox-inline"><input type="checkbox" checked value="nome">Nome</label>
+					<label class="checkbox-inline"><input type="checkbox" checked value="objetivos">Objetivos</label>
+					<label class="checkbox-inline"><input type="checkbox" checked value="progres">Programa resumido</label>
+					<label class="checkbox-inline"><input type="checkbox" checked value="programa">Programa</label>
+					<label class="checkbox-inline"><input type="checkbox" checked value="bibliografia">Bibliografia</label>
+				</div>
 			</div>
-			<div id="results"></div>
-			<div class="fb-like" data-href="http://rafaelviana.com.br/busca_usp/" data-layout="standard" data-action="like" data-show-faces="true" data-share="true"></div>
+			<div class="row"> <!--button/form row-->
+				<div class="col-xs-12">
+					<div class="input-group input-lg">
+						<input type="text" class="form-control" id="search_input" placeholder="O que você procura?" autocomplete="off">
+						<span class="input-group-btn">
+							<button class="btn btn-warning" id="search" type="button"><span class="glyphicon glyphicon-search" aria-hidden="true"></span> </button>
+						</span>
+					</div>
+				</div>
+			</div>
+			<div class="row"> <!-- results row-->
+				<div class="col-xs-12">
+					<div id="results">
+						<table class="table table-striped table-responsive" id="res_table" style="display:none;">
+							<thead>
+								<th id="disc_found"></th>
+							</thead>
+							<tbody>
+							</tbody>
+						</table>
+					</div>
+					<div class="progress" style="display:none;">
+						<div class="progress-bar progress-bar-striped progress-bar-warning active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+							<span class="sr-only">Carregando...</span>
+						</div>
+					</div>
+				</div>
+				<div class="col-xs-12">
+					<button id="loadMoreBtn" style="display:none;" type="button" class="btn btn-warning btn-lg btn-block">Mais resultados...</button>
+				</div>
+				<div class="col-xs-12"><a id="credits" href="#">Créditos</a></div>
+			</div>
 		</div>
 	</body>
 </html>
